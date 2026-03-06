@@ -20,7 +20,7 @@ export default function App() {
   const [generationConfig, setGenerationConfig] = useState(DEFAULT_CONFIG);
   const [generations, setGenerations] = useState(GENERATION_HISTORY);
   const [lastGeneration, setLastGeneration] = useState(null);
-  const [generationStatus, setGenerationStatus] = useState('failed'); // null | 'running' | 'complete' | 'failed'
+  const [generationStatus, setGenerationStatus] = useState(null); // null | 'running' | 'complete' | 'failed'
   const [currentGeneration, setCurrentGeneration] = useState(null);
 
   const startGeneration = useCallback(() => {

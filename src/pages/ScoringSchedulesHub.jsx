@@ -204,23 +204,7 @@ function ScheduleGenerationsTab({ navigate, generationStatus, currentGeneration 
         onView={() => navigate('#/schedules/view')}
       />
 
-      {/* Future cards will go here */}
-      {/* Example placeholders for other generation types */}
-      <GenerationCard
-        title="Boardroom Meetings"
-        description="Generate boardroom and group meeting sessions."
-        status={null}
-        data={null}
-        onGenerate={null}
-      />
-
-      <GenerationCard
-        title="Networking Sessions"
-        description="Generate open networking and roundtable sessions."
-        status={null}
-        data={null}
-        onGenerate={null}
-      />
+      {/* Future generation type cards will go here */}
     </div>
   );
 }

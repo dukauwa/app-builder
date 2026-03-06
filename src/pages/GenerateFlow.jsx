@@ -103,16 +103,18 @@ function MultiSelect({ label, options, selected, onChange, placeholder }) {
 // ══════════════════════════════════════════
 // STEP 1: Validation
 // ══════════════════════════════════════════
-const ChevronRight = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+const ChevronDown = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+);
+const ExternalLinkIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
 );
 const ShieldCheck = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
 );
 
-function ValidationStep({ onNext, onBack }) {
+function ValidationStep({ onNext }) {
   const [status, setStatus] = useState('loading'); // loading | done
-  const [dismissed, setDismissed] = useState([]);
   const [errorsOpen, setErrorsOpen] = useState(true);
   const [warningsOpen, setWarningsOpen] = useState(true);
 
@@ -121,10 +123,8 @@ function ValidationStep({ onNext, onBack }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const totalErrors = VALIDATION_RESULTS.errors.length;
-  const totalWarnings = VALIDATION_RESULTS.warnings.length;
-  const errors = VALIDATION_RESULTS.errors.filter(e => !dismissed.includes(e.id));
-  const warnings = VALIDATION_RESULTS.warnings.filter(w => !dismissed.includes(w.id));
+  const errors = VALIDATION_RESULTS.errors;
+  const warnings = VALIDATION_RESULTS.warnings;
   const hasErrors = errors.length > 0;
   const hasWarnings = warnings.length > 0;
   const isClean = !hasErrors && !hasWarnings;
@@ -139,9 +139,7 @@ function ValidationStep({ onNext, onBack }) {
 
   return (
     <>
-      {/* Scrollable content area — leave room for the fixed bottom bar */}
       <div className="space-y-6 pb-24">
-        {/* Fixed title + subtitle */}
         <div>
           <h2 className="text-lg font-semibold text-zinc-900">Data validation</h2>
           <p className="text-sm text-zinc-500 mt-1">
@@ -158,7 +156,7 @@ function ValidationStep({ onNext, onBack }) {
           </div>
         )}
 
-        {/* Clean / all dismissed state */}
+        {/* Clean state */}
         {status === 'done' && isClean && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <ShieldCheck />
@@ -171,27 +169,28 @@ function ValidationStep({ onNext, onBack }) {
 
         {/* Errors accordion */}
         {status === 'done' && errors.length > 0 && (
-          <div className="border border-rose-200 rounded-xl overflow-hidden">
+          <div className="border border-zinc-200 rounded-xl overflow-hidden">
             <button
               onClick={() => setErrorsOpen(!errorsOpen)}
-              className="w-full flex items-center justify-between px-5 py-3.5 bg-rose-50 hover:bg-rose-100/80 transition-colors"
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-zinc-50 transition-colors"
             >
-              <span className="flex items-center gap-2 text-sm font-semibold text-rose-700">
-                <XCircle /> {errors.length} Error{errors.length > 1 ? 's' : ''} — must be fixed
+              <span className="flex items-center gap-2.5 text-sm font-semibold text-zinc-900">
+                <XCircle /> {errors.length} Error{errors.length > 1 ? 's' : ''} (must be fixed)
               </span>
-              <span className={`text-rose-400 transition-transform ${errorsOpen ? 'rotate-90' : ''}`}>
-                <ChevronRight />
+              <span className={`text-zinc-400 transition-transform ${errorsOpen ? '' : '-rotate-90'}`}>
+                <ChevronDown />
               </span>
             </button>
             {errorsOpen && (
-              <div className="divide-y divide-rose-100">
+              <div className="border-t border-zinc-200">
                 {errors.map(err => (
-                  <div key={err.id} className="flex items-start gap-3 px-5 py-4 bg-white">
-                    <div className="flex-1">
-                      <p className="text-sm text-rose-900">{err.message}</p>
-                      {err.hint && <p className="text-xs text-rose-600 mt-2">{err.hint}</p>}
-                    </div>
-                    <button onClick={() => setDismissed(d => [...d, err.id])} className="text-xs text-rose-400 hover:text-rose-600 shrink-0">Dismiss</button>
+                  <div key={err.id} className="border-l-[3px] border-l-rose-500 px-5 py-4">
+                    <p className="text-sm text-zinc-800">{err.message}</p>
+                    {err.linkLabel && (
+                      <button className="flex items-center gap-1.5 text-sm font-medium text-rose-600 hover:text-rose-700 mt-2">
+                        {err.linkLabel} <ExternalLinkIcon />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -201,27 +200,28 @@ function ValidationStep({ onNext, onBack }) {
 
         {/* Warnings accordion */}
         {status === 'done' && warnings.length > 0 && (
-          <div className="border border-amber-200 rounded-xl overflow-hidden">
+          <div className="border border-zinc-200 rounded-xl overflow-hidden">
             <button
               onClick={() => setWarningsOpen(!warningsOpen)}
-              className="w-full flex items-center justify-between px-5 py-3.5 bg-amber-50 hover:bg-amber-100/80 transition-colors"
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-zinc-50 transition-colors"
             >
-              <span className="flex items-center gap-2 text-sm font-semibold text-amber-700">
+              <span className="flex items-center gap-2.5 text-sm font-semibold text-zinc-900">
                 <AlertTriangle /> {warnings.length} Warning{warnings.length > 1 ? 's' : ''}
               </span>
-              <span className={`text-amber-400 transition-transform ${warningsOpen ? 'rotate-90' : ''}`}>
-                <ChevronRight />
+              <span className={`text-zinc-400 transition-transform ${warningsOpen ? '' : '-rotate-90'}`}>
+                <ChevronDown />
               </span>
             </button>
             {warningsOpen && (
-              <div className="divide-y divide-amber-100">
+              <div className="border-t border-zinc-200">
                 {warnings.map(w => (
-                  <div key={w.id} className="flex items-start gap-3 px-5 py-4 bg-white">
-                    <div className="flex-1">
-                      <p className="text-sm text-amber-900">{w.message}</p>
-                      {w.hint && <p className="text-xs text-amber-600 mt-2">{w.hint}</p>}
-                    </div>
-                    <button onClick={() => setDismissed(d => [...d, w.id])} className="text-xs text-amber-400 hover:text-amber-600 shrink-0">Dismiss</button>
+                  <div key={w.id} className="border-l-[3px] border-l-amber-500 px-5 py-4">
+                    <p className="text-sm text-zinc-800">{w.message}</p>
+                    {w.linkLabel && (
+                      <button className="flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700 mt-2">
+                        {w.linkLabel} <ExternalLinkIcon />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -231,31 +231,26 @@ function ValidationStep({ onNext, onBack }) {
       </div>
 
       {/* Fixed bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-6 py-4 flex items-center justify-between z-30">
-        <button onClick={onBack} className="text-sm font-medium text-zinc-600 hover:text-zinc-900">
-          Back
-        </button>
-        <div className="flex items-center gap-3">
-          {status === 'done' && (
-            <button
-              onClick={() => { setStatus('loading'); setDismissed([]); }}
-              className="px-4 py-2 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-            >
-              Re-validate
-            </button>
-          )}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-10 py-4 flex items-center justify-end gap-3 z-30">
+        {status === 'done' && (
           <button
-            onClick={onNext}
-            disabled={!canContinue}
-            className={`px-6 py-2.5 rounded-lg text-sm font-medium ${
-              canContinue
-                ? 'bg-[#522DA6] text-white hover:bg-[#422389]'
-                : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-            }`}
+            onClick={() => setStatus('loading')}
+            className="px-4 py-2 border border-[#522DA6] rounded-lg text-sm font-medium text-[#522DA6] hover:bg-[#522DA6]/5"
           >
-            {status === 'loading' ? 'Validating...' : hasErrors ? 'Fix errors to continue' : 'Continue'}
+            Re-validate
           </button>
-        </div>
+        )}
+        <button
+          onClick={onNext}
+          disabled={!canContinue}
+          className={`px-6 py-2.5 rounded-lg text-sm font-medium ${
+            canContinue
+              ? 'bg-[#522DA6] text-white hover:bg-[#422389]'
+              : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+          }`}
+        >
+          {status === 'loading' ? 'Validating...' : hasErrors ? 'Fix errors to continue' : 'Continue'}
+        </button>
       </div>
     </>
   );
@@ -428,10 +423,7 @@ function ConfigurationStep({ config, setConfig, onGenerate, onBack, onSlotPriori
     </div>
 
       {/* Fixed bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-6 py-4 flex items-center justify-between z-30">
-        <button onClick={onBack} className="text-sm font-medium text-zinc-600 hover:text-zinc-900">
-          Back
-        </button>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-10 py-4 flex items-center justify-end z-30">
         <button
           onClick={onGenerate}
           className="px-6 py-2.5 bg-[#522DA6] text-white rounded-lg text-sm font-medium hover:bg-[#422389]"
@@ -460,21 +452,21 @@ export default function GenerateFlow({ navigate, config, setConfig, slotRules, s
     <div className="min-h-screen bg-zinc-50">
       {/* Header */}
       <div className="h-1 bg-[#522DA6]" />
-      <div className="border-b border-zinc-200 bg-white px-6 py-4 flex items-center justify-between">
+      <div className="border-b border-zinc-200 bg-white px-10 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={goBack} className="text-zinc-400 hover:text-zinc-600">
-            <ArrowLeft />
-          </button>
+          <img src="/grip-logo.png" alt="Grip" className="h-8" />
           <div>
             <h1 className="text-lg font-semibold text-zinc-900">Generate Schedules</h1>
             <StepIndicator steps={STEPS} current={step} />
           </div>
         </div>
-        <img src="/grip-logo.png" alt="Grip" className="h-8" />
+        <button onClick={goBack} className="flex items-center gap-2 px-4 py-2 border border-zinc-300 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+          <ArrowLeft /> Go back
+        </button>
       </div>
 
       {/* Step Content */}
-      <div className="py-8 px-6 mx-auto max-w-[1240px]">
+      <div className="py-8 px-10">
         {step === 'validation' && (
           <ValidationStep
             onNext={() => setStep('config')}

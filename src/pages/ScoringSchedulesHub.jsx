@@ -188,11 +188,6 @@ function GenerationCard({ title, description, status, data, error, onGenerate, o
 function ScheduleGenerationsTab({ navigate, generationStatus, currentGeneration }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-base font-semibold text-zinc-900">Schedule Generations</h3>
-        <p className="text-sm text-zinc-500 mt-0.5">Track and manage generation runs for this event.</p>
-      </div>
-
       {/* MustMeet Generation Card */}
       <GenerationCard
         title="MustMeet Meetings"

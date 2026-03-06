@@ -40,13 +40,13 @@ export const VALIDATION_RESULTS = {
       id: 'e1',
       type: 'error',
       message: 'There are groups in the system which are marked as being a venue & a buyer visit group. Groups cannot be marked as both.',
-      linkLabel: 'Review groups',
+      hint: 'Go to Custom Groups to review group settings.',
     },
     {
       id: 'e2',
       type: 'error',
       message: 'Attendee "Marcus Bell" (Grip Id 5554321) has Exclusive Meetings enabled, but doesn\'t have an exhibitor_id. Please add an exhibitor_id for this user.',
-      linkLabel: 'Edit attendee',
+      hint: 'Go to the Profile list to update attendee details.',
     },
   ],
   warnings: [
@@ -54,13 +54,13 @@ export const VALIDATION_RESULTS = {
       id: 'w1',
       type: 'warning',
       message: 'Attendees "Emily White", "James Wilson" have maximum meeting limits that are below their minimum meetings target. Please correct these limits and try again.',
-      linkLabel: 'Review limits',
+      hint: 'Check meeting limits in the Profile list.',
     },
     {
       id: 'w2',
       type: 'warning',
       message: '4 participants have no meeting preferences set. They will receive lower quality matches.',
-      linkLabel: 'Review preferences',
+      hint: 'Review preferences in the Profile list.',
     },
   ],
 };

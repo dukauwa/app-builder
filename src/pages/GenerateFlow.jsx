@@ -115,6 +115,7 @@ const ShieldCheck = () => (
 
 function ValidationStep({ onNext }) {
   const [status, setStatus] = useState('loading'); // loading | done
+  const [dismissed, setDismissed] = useState([]);
   const [errorsOpen, setErrorsOpen] = useState(true);
   const [warningsOpen, setWarningsOpen] = useState(true);
 
@@ -123,8 +124,8 @@ function ValidationStep({ onNext }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const errors = VALIDATION_RESULTS.errors;
-  const warnings = VALIDATION_RESULTS.warnings;
+  const errors = VALIDATION_RESULTS.errors.filter(e => !dismissed.includes(e.id));
+  const warnings = VALIDATION_RESULTS.warnings.filter(w => !dismissed.includes(w.id));
   const hasErrors = errors.length > 0;
   const hasWarnings = warnings.length > 0;
   const isClean = !hasErrors && !hasWarnings;
@@ -184,13 +185,16 @@ function ValidationStep({ onNext }) {
             {errorsOpen && (
               <div className="border-t border-zinc-200">
                 {errors.map(err => (
-                  <div key={err.id} className="border-l-[3px] border-l-rose-500 px-5 py-4">
-                    <p className="text-sm text-zinc-800">{err.message}</p>
-                    {err.linkLabel && (
-                      <button className="flex items-center gap-1.5 text-sm font-medium text-rose-600 hover:text-rose-700 mt-2">
-                        {err.linkLabel} <ExternalLinkIcon />
-                      </button>
-                    )}
+                  <div key={err.id} className="flex items-start justify-between border-l-[3px] border-l-rose-500 px-5 py-4">
+                    <div className="flex-1">
+                      <p className="text-sm text-zinc-800">{err.message}</p>
+                      {err.hint && (
+                        <button className="flex items-center gap-1.5 text-sm font-medium text-rose-600 hover:text-rose-700 mt-2">
+                          {err.hint} <ExternalLinkIcon />
+                        </button>
+                      )}
+                    </div>
+                    <button onClick={() => setDismissed(d => [...d, err.id])} className="text-xs text-zinc-400 hover:text-zinc-600 shrink-0 ml-4">Dismiss</button>
                   </div>
                 ))}
               </div>
@@ -215,13 +219,16 @@ function ValidationStep({ onNext }) {
             {warningsOpen && (
               <div className="border-t border-zinc-200">
                 {warnings.map(w => (
-                  <div key={w.id} className="border-l-[3px] border-l-amber-500 px-5 py-4">
-                    <p className="text-sm text-zinc-800">{w.message}</p>
-                    {w.linkLabel && (
-                      <button className="flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700 mt-2">
-                        {w.linkLabel} <ExternalLinkIcon />
-                      </button>
-                    )}
+                  <div key={w.id} className="flex items-start justify-between border-l-[3px] border-l-amber-500 px-5 py-4">
+                    <div className="flex-1">
+                      <p className="text-sm text-zinc-800">{w.message}</p>
+                      {w.hint && (
+                        <button className="flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700 mt-2">
+                          {w.hint} <ExternalLinkIcon />
+                        </button>
+                      )}
+                    </div>
+                    <button onClick={() => setDismissed(d => [...d, w.id])} className="text-xs text-zinc-400 hover:text-zinc-600 shrink-0 ml-4">Dismiss</button>
                   </div>
                 ))}
               </div>
@@ -234,7 +241,7 @@ function ValidationStep({ onNext }) {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-10 py-4 flex items-center justify-end gap-3 z-30">
         {status === 'done' && (
           <button
-            onClick={() => setStatus('loading')}
+            onClick={() => { setStatus('loading'); setDismissed([]); }}
             className="px-4 py-2 border border-[#522DA6] rounded-lg text-sm font-medium text-[#522DA6] hover:bg-[#522DA6]/5"
           >
             Re-validate
@@ -449,12 +456,12 @@ export default function GenerateFlow({ navigate, config, setConfig, slotRules, s
   const goBack = () => navigate('#/schedules');
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="h-1 bg-[#522DA6]" />
       <div className="border-b border-zinc-200 bg-white px-10 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <img src="/grip-logo.png" alt="Grip" className="h-8" />
+          <div className="h-8 w-[68px] overflow-hidden shrink-0"><img src="/grip-logo.png" alt="Grip" className="h-8" /></div>
           <div>
             <h1 className="text-lg font-semibold text-zinc-900">Generate Schedules</h1>
             <StepIndicator steps={STEPS} current={step} />

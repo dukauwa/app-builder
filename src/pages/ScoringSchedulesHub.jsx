@@ -87,46 +87,32 @@ function ScoresTab() {
   );
 }
 
-// ── Schedule Generations Tab ──
-function ScheduleGenerationsTab({ navigate, generationStatus, currentGeneration }) {
+// ── Generation Card (reusable for any generation type) ──
+function GenerationCard({ title, description, status, data, error, onGenerate, onRegenerate, onView }) {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="border border-zinc-200 rounded-lg bg-white overflow-hidden">
+      {/* Card Header */}
+      <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold text-zinc-900">Schedule Generations</h3>
-          <p className="text-sm text-zinc-500 mt-0.5">Track and manage schedule generation runs.</p>
+          <h4 className="text-sm font-semibold text-zinc-900">{title}</h4>
+          {description && <p className="text-xs text-zinc-500 mt-0.5">{description}</p>}
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('#/schedules/view')}
-            className="flex items-center gap-2 px-4 py-2 border border-zinc-300 rounded-lg text-sm font-medium text-zinc-900 hover:bg-zinc-50"
-          >
-            <EyeIcon />
-            View schedules
-          </button>
-          <button
-            onClick={() => navigate('#/generate')}
-            className="px-4 py-2 bg-[#522DA6] text-white rounded-lg text-sm font-medium hover:bg-[#422389]"
-          >
-            Generate schedules
-          </button>
-        </div>
+        {status && (
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${status === 'running' ? 'bg-blue-500 animate-pulse' : status === 'complete' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+            <span className={`text-xs font-medium ${status === 'running' ? 'text-blue-600' : status === 'complete' ? 'text-emerald-600' : 'text-rose-600'}`}>
+              {status === 'running' ? 'Running...' : status === 'complete' ? 'Complete' : 'Failed'}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Last Generation Card */}
-      <div className="border border-zinc-200 rounded-lg bg-white overflow-hidden">
-        <div className="px-5 py-4 border-b border-zinc-100">
-          <h4 className="text-sm font-semibold text-zinc-900">Last generation run</h4>
-        </div>
-
+      {/* Card Body */}
+      <div className="px-5 py-5">
         {/* Running */}
-        {generationStatus === 'running' && currentGeneration && (
-          <div className="px-5 py-6">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-              <span className="text-sm font-medium text-blue-600">Running...</span>
-            </div>
-            <p className="text-sm text-zinc-500 mb-4">Schedule generation is in progress. This may take a few minutes.</p>
+        {status === 'running' && (
+          <div>
+            <p className="text-sm text-zinc-500 mb-4">Generation is in progress. This may take a few minutes.</p>
             <button
               onClick={() => {}}
               className="px-4 py-2 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50"
@@ -137,57 +123,104 @@ function ScheduleGenerationsTab({ navigate, generationStatus, currentGeneration 
         )}
 
         {/* Complete */}
-        {generationStatus === 'complete' && currentGeneration && (
-          <div className="px-5 py-6">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span className="text-sm font-medium text-emerald-600">Complete</span>
-            </div>
+        {status === 'complete' && data && (
+          <div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
               <div>
                 <div className="text-xs text-zinc-500 mb-0.5">Meetings generated</div>
-                <div className="text-sm font-semibold text-zinc-900">{currentGeneration.itemsGenerated}</div>
+                <div className="text-sm font-semibold text-zinc-900">{data.itemsGenerated}</div>
               </div>
               <div>
                 <div className="text-xs text-zinc-500 mb-0.5">Date</div>
-                <div className="text-sm font-semibold text-zinc-900">{currentGeneration.timeCreated}</div>
+                <div className="text-sm font-semibold text-zinc-900">{data.timeCreated}</div>
               </div>
               <div>
                 <div className="text-xs text-zinc-500 mb-0.5">Time taken</div>
-                <div className="text-sm font-semibold text-zinc-900">{currentGeneration.timeTaken || '~10s'}</div>
+                <div className="text-sm font-semibold text-zinc-900">{data.timeTaken || '~10s'}</div>
               </div>
               <div>
                 <div className="text-xs text-zinc-500 mb-0.5">Generated by</div>
-                <div className="text-sm font-semibold text-zinc-900">{currentGeneration.generatedBy}</div>
+                <div className="text-sm font-semibold text-zinc-900">{data.generatedBy}</div>
               </div>
             </div>
-            <button
-              onClick={() => navigate('#/schedules/view')}
-              className="px-4 py-2 bg-[#522DA6] text-white rounded-lg text-sm font-medium hover:bg-[#422389]"
-            >
-              View Schedules
-            </button>
+            <div className="flex items-center gap-3">
+              {onView && (
+                <button onClick={onView} className="flex items-center gap-2 px-4 py-2 bg-[#522DA6] text-white rounded-lg text-sm font-medium hover:bg-[#422389]">
+                  <EyeIcon /> View Schedules
+                </button>
+              )}
+              {onRegenerate && (
+                <button onClick={onRegenerate} className="px-4 py-2 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+                  Regenerate
+                </button>
+              )}
+            </div>
           </div>
         )}
 
         {/* Failed */}
-        {generationStatus === 'failed' && (
-          <div className="px-5 py-6">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-              <span className="text-sm font-medium text-rose-600">Failed</span>
-            </div>
-            <p className="text-sm text-rose-700">Schedule generation failed. Please check your settings and try again.</p>
+        {status === 'failed' && (
+          <div>
+            <p className="text-sm text-rose-700 mb-4">{error || 'Generation failed. Please check your settings and try again.'}</p>
+            <button onClick={onRegenerate || onGenerate} className="px-4 py-2 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+              Retry
+            </button>
           </div>
         )}
 
-        {/* No runs yet */}
-        {!generationStatus && (
-          <div className="px-5 py-8 text-center">
-            <p className="text-sm text-zinc-400">No generation runs yet. Click "Generate schedules" to get started.</p>
+        {/* Not started */}
+        {!status && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-zinc-400">No generation runs yet.</p>
+            {onGenerate && (
+              <button onClick={onGenerate} className="px-4 py-2 bg-[#522DA6] text-white rounded-lg text-sm font-medium hover:bg-[#422389]">
+                Generate
+              </button>
+            )}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Schedule Generations Tab ──
+function ScheduleGenerationsTab({ navigate, generationStatus, currentGeneration }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-base font-semibold text-zinc-900">Schedule Generations</h3>
+        <p className="text-sm text-zinc-500 mt-0.5">Track and manage generation runs for this event.</p>
+      </div>
+
+      {/* MustMeet Generation Card */}
+      <GenerationCard
+        title="MustMeet Meetings"
+        description="Generate scheduled meetings between matched participants."
+        status={generationStatus}
+        data={currentGeneration}
+        onGenerate={() => navigate('#/generate')}
+        onRegenerate={() => navigate('#/generate')}
+        onView={() => navigate('#/schedules/view')}
+      />
+
+      {/* Future cards will go here */}
+      {/* Example placeholders for other generation types */}
+      <GenerationCard
+        title="Boardroom Meetings"
+        description="Generate boardroom and group meeting sessions."
+        status={null}
+        data={null}
+        onGenerate={null}
+      />
+
+      <GenerationCard
+        title="Networking Sessions"
+        description="Generate open networking and roundtable sessions."
+        status={null}
+        data={null}
+        onGenerate={null}
+      />
     </div>
   );
 }

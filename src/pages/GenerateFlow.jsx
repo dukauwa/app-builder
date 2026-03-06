@@ -461,7 +461,7 @@ export default function GenerateFlow({ navigate, config, setConfig, slotRules, s
       <div className="h-1 bg-[#522DA6]" />
       <div className="border-b border-zinc-200 bg-white px-10 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="h-8 w-[68px] overflow-hidden shrink-0"><img src="/grip-logo.png" alt="Grip" className="h-8" /></div>
+          <img src="/Image (Grip).png" alt="Grip" className="h-7" />
           <div>
             <h1 className="text-lg font-semibold text-zinc-900">Generate Schedules</h1>
             <StepIndicator steps={STEPS} current={step} />

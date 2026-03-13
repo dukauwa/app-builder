@@ -74,15 +74,20 @@ export default function StepReview({ onBack, onGoToStep, onVersionCreated, navig
   const { state, dispatch } = useAppBuilder();
   const [buildTriggered, setBuildTriggered] = useState(false);
   const [androidWarning, setAndroidWarning] = useState(false);
+  const [iosAttempts, setIosAttempts] = useState(0);
   const isView = state.mode === 'view';
 
   const triggerBuild = (platform) => {
     setBuildTriggered(true);
     dispatch({ type: 'SET_PLATFORM_BUILD_STATUS', platform, status: 'building' });
 
+    // Track iOS attempts — first attempt always fails with cert error
+    const currentIosAttempts = platform === 'ios' ? iosAttempts + 1 : iosAttempts;
+    if (platform === 'ios') setIosAttempts(currentIosAttempts);
+
     // Simulate build process
     setTimeout(() => {
-      const success = Math.random() > 0.3;
+      const success = platform === 'ios' ? currentIosAttempts > 1 : true;
       if (success) {
         dispatch({
           type: 'SET_PLATFORM_BUILD_STATUS',

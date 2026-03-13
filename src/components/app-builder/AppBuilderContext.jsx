@@ -24,7 +24,7 @@ const INITIAL_STATE = {
   androidDeployEnabled: true,
 
   // Game Center (from API)
-  gameCenterEnabled: false,
+  gameCenterEnabled: true,
   gameCenterWarningShown: false,
 
   // Step 2: File uploads

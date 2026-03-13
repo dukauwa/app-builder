@@ -268,6 +268,7 @@ export default function StepReview({ onBack, onGoToStep, onVersionCreated, navig
                   <BuildStatusPanel
                     platform="android"
                     status={state.androidBuildStatus}
+                    logs={state.buildLogs}
                   />
                   {androidWarning && !state.androidBuildStatus && (
                     <div className="mt-3 px-3 py-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">

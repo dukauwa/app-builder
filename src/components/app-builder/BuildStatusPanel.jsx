@@ -41,7 +41,7 @@ export default function BuildStatusPanel({ platform, status, logs, onClearCertif
           <p className="text-xs text-zinc-500 mt-0.5">
             {status === 'building' && 'This may take several minutes'}
             {status === 'success' && (isIos ? 'Pushed to TestFlight' : 'Pushed to App Tester')}
-            {status === 'failed' && 'Check the logs below for details'}
+            {status === 'failed' && (logs ? 'See error details below' : 'Build failed. Please check your configuration and retry.')}
           </p>
         </div>
       </div>

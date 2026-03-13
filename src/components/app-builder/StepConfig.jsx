@@ -89,8 +89,21 @@ export default function StepConfig({ onNext, onCancel }) {
         {gameCenterBlocked && (
           <div className="flex items-start gap-3 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl">
             <span className="mt-0.5"><AlertIcon /></span>
-            <div>
-              <p className="text-sm font-semibold text-rose-800">Game Center is enabled</p>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-rose-800">Game Center is enabled</p>
+                <div className="relative group">
+                  <button
+                    onClick={() => { setField('gameCenterEnabled', false); setGameCenterBlocked(false); }}
+                    className="text-xs font-medium text-rose-600 hover:text-rose-800 underline underline-offset-2"
+                  >
+                    Disable (demo)
+                  </button>
+                  <div className="absolute bottom-full right-0 mb-1.5 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-md shadow-md text-[11px] text-zinc-600 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                    Not part of actual flow
+                  </div>
+                </div>
+              </div>
               <p className="text-xs text-rose-700 mt-0.5">
                 iOS deployment cannot proceed while Game Center is active for this app. Please disable Game Center externally before continuing.
               </p>

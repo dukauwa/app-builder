@@ -1,14 +1,13 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 
 const INITIAL_STATE = {
-  mode: 'new-version', // 'new-version' | 'view'
+  mode: 'new-version', // 'new-version' | 'edit'
   currentStep: 'config', // 'config' | 'uploads' | 'review'
 
   // Version info
   versionNumber: null,
   iosVersion: '',
   androidVersion: '',
-  revertedFrom: null,
 
   // Step 1: Configuration
   appName: '',
@@ -42,6 +41,20 @@ const INITIAL_STATE = {
   iosBuildStatus: null,
   androidBuildStatus: null,
 
+  // Build duration (ms)
+  iosBuildStartTime: null,
+  androidBuildStartTime: null,
+  iosBuildDuration: null,
+  androidBuildDuration: null,
+
+  // Published status
+  iosPublished: false,
+  androidPublished: false,
+
+  // Created dates (per platform)
+  iosCreatedAt: null,
+  androidCreatedAt: null,
+
   // Field locks
   lockedFields: [],
 
@@ -53,8 +66,6 @@ const INITIAL_STATE = {
 function reducer(state, action) {
   switch (action.type) {
     case 'SET_FIELD': {
-      // In view mode, reject all changes
-      if (state.mode === 'view') return state;
       if (state.lockedFields.includes(action.field)) return state;
       return { ...state, [action.field]: action.value, errors: { ...state.errors, [action.field]: undefined } };
     }
@@ -68,12 +79,28 @@ function reducer(state, action) {
       return { ...state, ...action.data };
     case 'SET_BUILD_STATUS':
       return { ...state, buildStatus: action.status, buildLogs: action.logs || state.buildLogs };
-    case 'SET_PLATFORM_BUILD_STATUS':
-      return {
-        ...state,
-        [action.platform === 'ios' ? 'iosBuildStatus' : 'androidBuildStatus']: action.status,
-        ...(action.appleStoreConnectId ? { appleStoreConnectId: action.appleStoreConnectId } : {}),
-      };
+    case 'SET_PLATFORM_BUILD_STATUS': {
+      const platformKey = action.platform === 'ios' ? 'iosBuildStatus' : 'androidBuildStatus';
+      const updates = { [platformKey]: action.status };
+      if (action.appleStoreConnectId) updates.appleStoreConnectId = action.appleStoreConnectId;
+      // Track build start time
+      if (action.status === 'building') {
+        updates[action.platform === 'ios' ? 'iosBuildStartTime' : 'androidBuildStartTime'] = Date.now();
+      }
+      // Calculate duration on completion
+      if (action.status === 'success' || action.status === 'failed') {
+        const startKey = action.platform === 'ios' ? 'iosBuildStartTime' : 'androidBuildStartTime';
+        const durationKey = action.platform === 'ios' ? 'iosBuildDuration' : 'androidBuildDuration';
+        const createdKey = action.platform === 'ios' ? 'iosCreatedAt' : 'androidCreatedAt';
+        if (state[startKey]) {
+          updates[durationKey] = Date.now() - state[startKey];
+        }
+        if (action.status === 'success') {
+          updates[createdKey] = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        }
+      }
+      return { ...state, ...updates };
+    }
     case 'SET_ERRORS':
       return { ...state, errors: action.errors };
     case 'MARK_STEP1_SAVED':

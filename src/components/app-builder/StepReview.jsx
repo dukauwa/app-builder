@@ -23,6 +23,10 @@ const AlertIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
 );
 
+const DownloadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+);
+
 function ReviewField({ label, value, locked }) {
   return (
     <div className="flex items-start justify-between py-2">
@@ -70,12 +74,43 @@ function FileStatus({ label, file }) {
   );
 }
 
-export default function StepReview({ onBack, onGoToStep, onVersionCreated, navigate }) {
+export default function StepReview({ onBack, onGoToStep, onBuildUpdated, navigate }) {
   const { state, dispatch } = useAppBuilder();
   const [buildTriggered, setBuildTriggered] = useState(false);
   const [androidWarning, setAndroidWarning] = useState(false);
   const [iosAttempts, setIosAttempts] = useState(0);
-  const isView = state.mode === 'view';
+
+  const createBuildObject = (platformOverrides = {}) => {
+    return {
+      versionNumber: state.versionNumber,
+      iosVersion: state.iosVersion,
+      androidVersion: state.androidVersion,
+      iosBuildStatus: state.iosBuildStatus,
+      androidBuildStatus: state.androidBuildStatus,
+      iosBuildDuration: state.iosBuildDuration,
+      androidBuildDuration: state.androidBuildDuration,
+      iosPublished: state.iosPublished,
+      androidPublished: state.androidPublished,
+      iosCreatedAt: state.iosCreatedAt,
+      androidCreatedAt: state.androidCreatedAt,
+      appleStoreConnectId: state.appleStoreConnectId,
+      config: {
+        appName: state.appName,
+        bundleId: state.bundleId,
+        packageId: state.packageId,
+        appleTeamId: state.appleTeamId,
+        appleAuthKeyId: state.appleAuthKeyId,
+        appleIssuerId: state.appleIssuerId,
+        appleKeyName: state.appleKeyName,
+        firebaseAppId: state.firebaseAppId,
+        firebaseTestersEmail: state.firebaseTestersEmail,
+        iosDeployEnabled: state.iosDeployEnabled,
+        androidDeployEnabled: state.androidDeployEnabled,
+        gameCenterEnabled: state.gameCenterEnabled,
+      },
+      ...platformOverrides,
+    };
+  };
 
   const triggerBuild = (platform) => {
     setBuildTriggered(true);
@@ -89,40 +124,32 @@ export default function StepReview({ onBack, onGoToStep, onVersionCreated, navig
     setTimeout(() => {
       const success = platform === 'ios' ? currentIosAttempts > 1 : true;
       if (success) {
+        const ascId = platform === 'ios' ? 'ASC-' + Math.floor(Math.random() * 900000 + 100000) : undefined;
         dispatch({
           type: 'SET_PLATFORM_BUILD_STATUS',
           platform,
           status: 'success',
-          ...(platform === 'ios' ? { appleStoreConnectId: 'ASC-' + Math.floor(Math.random() * 900000 + 100000) } : {}),
+          ...(ascId ? { appleStoreConnectId: ascId } : {}),
         });
         toast.success(`${platform === 'ios' ? 'iOS' : 'Android'} build completed successfully!`);
 
-        // Create version entry when build succeeds
-        if (onVersionCreated && state.mode === 'new-version') {
-          const newVersion = {
-            versionNumber: state.versionNumber,
-            iosVersion: state.iosVersion,
-            androidVersion: state.androidVersion,
-            iosBuildStatus: platform === 'ios' ? 'success' : (state.iosBuildStatus || 'draft'),
-            androidBuildStatus: platform === 'android' ? 'success' : (state.androidBuildStatus || 'draft'),
-            createdAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-            revertedFrom: state.revertedFrom,
-            config: {
-              appName: state.appName,
-              bundleId: state.bundleId,
-              packageId: state.packageId,
-              appleTeamId: state.appleTeamId,
-              appleAuthKeyId: state.appleAuthKeyId,
-              appleIssuerId: state.appleIssuerId,
-              appleKeyName: state.appleKeyName,
-              firebaseAppId: state.firebaseAppId,
-              firebaseTestersEmail: state.firebaseTestersEmail,
-              iosDeployEnabled: state.iosDeployEnabled,
-              androidDeployEnabled: state.androidDeployEnabled,
-              gameCenterEnabled: state.gameCenterEnabled,
-            },
-          };
-          onVersionCreated(newVersion);
+        // Update the build object in parent state
+        if (onBuildUpdated) {
+          // We need to read updated state after dispatch — use setTimeout to let React batch
+          setTimeout(() => {
+            const now = new Date();
+            const createdAt = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            const overrides = {};
+            if (platform === 'ios') {
+              overrides.iosBuildStatus = 'success';
+              overrides.iosCreatedAt = createdAt;
+              if (ascId) overrides.appleStoreConnectId = ascId;
+            } else {
+              overrides.androidBuildStatus = 'success';
+              overrides.androidCreatedAt = createdAt;
+            }
+            onBuildUpdated(createBuildObject(overrides));
+          }, 50);
         }
       } else {
         dispatch({
@@ -136,6 +163,15 @@ export default function StepReview({ onBack, onGoToStep, onVersionCreated, navig
           logs: `Build failed at step 3/5: Code signing error\n\nError: No matching provisioning profile found for bundle ID "${state.bundleId}".\n\nPlease ensure your certificates and provisioning profiles are valid.\nIf this issue persists, try clearing certificates and profiles.`,
         });
         toast.error(`${platform === 'ios' ? 'iOS' : 'Android'} build failed. Check logs for details.`);
+
+        if (onBuildUpdated) {
+          setTimeout(() => {
+            const overrides = {};
+            if (platform === 'ios') overrides.iosBuildStatus = 'failed';
+            else overrides.androidBuildStatus = 'failed';
+            onBuildUpdated(createBuildObject(overrides));
+          }, 50);
+        }
       }
     }, 5000);
   };
@@ -156,6 +192,10 @@ export default function StepReview({ onBack, onGoToStep, onVersionCreated, navig
     setBuildTriggered(false);
   };
 
+  const handleDownloadApk = () => {
+    toast.success('APK download started (demo)');
+  };
+
   const iosBuilding = state.iosBuildStatus === 'building';
   const androidBuilding = state.androidBuildStatus === 'building';
   const testerCount = state.firebaseTestersEmail ? state.firebaseTestersEmail.split('\n').filter(e => e.trim()).length : 0;
@@ -165,12 +205,10 @@ export default function StepReview({ onBack, onGoToStep, onVersionCreated, navig
       <div className="space-y-6 pb-24">
         <div>
           <h2 className="text-lg font-semibold text-zinc-900">
-            {isView ? `Version ${state.versionNumber} — Review` : 'Review & Build'}
+            {state.mode === 'edit' ? 'Review & Rebuild' : 'Review & Build'}
           </h2>
           <p className="text-sm text-zinc-500 mt-1">
-            {isView
-              ? 'Viewing the configuration snapshot for this version.'
-              : 'Review your configuration and trigger the build when ready.'}
+            Review your configuration and trigger the build when ready.
           </p>
         </div>
 
@@ -179,21 +217,20 @@ export default function StepReview({ onBack, onGoToStep, onVersionCreated, navig
           <ReviewField label="Version Number" value={`v${state.versionNumber}`} />
           <ReviewField label="iOS Version" value={state.iosVersion} />
           <ReviewField label="Android Version" value={state.androidVersion} />
-          {state.revertedFrom && <ReviewField label="Reverted From" value={`v${state.revertedFrom}`} />}
         </ReviewSection>
 
         {/* Config Summary */}
-        <ReviewSection title="App Identity" onEdit={!isView ? () => onGoToStep('config') : undefined}>
+        <ReviewSection title="App Identity" onEdit={() => onGoToStep('config')}>
           <ReviewField label="App Name" value={state.appName} />
         </ReviewSection>
 
-        <ReviewSection title="Deploy Settings" onEdit={!isView ? () => onGoToStep('config') : undefined}>
+        <ReviewSection title="Deploy Settings" onEdit={() => onGoToStep('config')}>
           <ReviewField label="iOS Deploy" value={state.iosDeployEnabled ? 'Enabled' : 'Disabled'} />
           <ReviewField label="Android Deploy" value={state.androidDeployEnabled ? 'Enabled' : 'Disabled'} />
         </ReviewSection>
 
         {state.iosDeployEnabled && (
-          <ReviewSection title="Apple Configuration" onEdit={!isView ? () => onGoToStep('config') : undefined}>
+          <ReviewSection title="Apple Configuration" onEdit={() => onGoToStep('config')}>
             <ReviewField label="Bundle ID" value={state.bundleId} locked={state.lockedFields.includes('bundleId')} />
             <ReviewField label="Apple Team ID" value={state.appleTeamId} locked={state.lockedFields.includes('appleTeamId')} />
             <ReviewField label="Apple Key Name" value={state.appleKeyName} />
@@ -206,14 +243,14 @@ export default function StepReview({ onBack, onGoToStep, onVersionCreated, navig
         )}
 
         {state.androidDeployEnabled && (
-          <ReviewSection title="Google & Firebase" onEdit={!isView ? () => onGoToStep('config') : undefined}>
+          <ReviewSection title="Google & Firebase" onEdit={() => onGoToStep('config')}>
             <ReviewField label="Package ID" value={state.packageId} locked={state.lockedFields.includes('packageId')} />
             <ReviewField label="Firebase App ID" value={state.firebaseAppId} />
             <ReviewField label="Firebase Testers" value={testerCount > 0 ? `${testerCount} email${testerCount > 1 ? 's' : ''}` : null} />
           </ReviewSection>
         )}
 
-        <ReviewSection title="File Uploads" onEdit={!isView ? () => onGoToStep('uploads') : undefined}>
+        <ReviewSection title="File Uploads" onEdit={() => onGoToStep('uploads')}>
           <FileStatus label="App Icon" file={state.appIcon} />
           <FileStatus label="Adaptive Icon" file={state.adaptiveIcon} />
           {state.iosDeployEnabled && (
@@ -224,111 +261,119 @@ export default function StepReview({ onBack, onGoToStep, onVersionCreated, navig
           )}
         </ReviewSection>
 
-        {/* Build Action Cards — only in new-version mode */}
-        {!isView && (
-          <div className="grid grid-cols-2 gap-4">
-            {/* iOS Build Card */}
-            <div className={`border rounded-xl p-5 ${state.iosDeployEnabled ? 'border-zinc-200' : 'border-zinc-100 bg-zinc-50 opacity-60'}`}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-zinc-100 rounded-lg"><AppleIcon /></div>
-                <div>
-                  <h3 className="text-sm font-semibold text-zinc-900">iOS Build</h3>
-                  <p className="text-xs text-zinc-500">Push to TestFlight</p>
-                </div>
+        {/* Build Action Cards */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* iOS Build Card */}
+          <div className={`border rounded-xl p-5 ${state.iosDeployEnabled ? 'border-zinc-200' : 'border-zinc-100 bg-zinc-50 opacity-60'}`}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-zinc-100 rounded-lg"><AppleIcon /></div>
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-900">iOS Build</h3>
+                <p className="text-xs text-zinc-500">Push to TestFlight</p>
               </div>
-              {state.iosDeployEnabled ? (
-                <>
-                  <BuildStatusPanel
-                    platform="ios"
-                    status={state.iosBuildStatus}
-                    logs={state.buildLogs}
-                    onClearCertificates={handleClearCertificates}
-                  />
-                  {!state.iosBuildStatus && (
-                    <button
-                      onClick={() => triggerBuild('ios')}
-                      disabled={iosBuilding || androidBuilding}
-                      className="w-full mt-3 px-4 py-2.5 bg-[#522DA6] text-white rounded-lg text-sm font-medium hover:bg-[#422389] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Build iOS v{state.iosVersion}
-                    </button>
-                  )}
-                </>
-              ) : (
-                <p className="text-xs text-zinc-400">iOS deployment is disabled</p>
-              )}
             </div>
-
-            {/* Android Build Card */}
-            <div className={`border rounded-xl p-5 ${state.androidDeployEnabled ? 'border-zinc-200' : 'border-zinc-100 bg-zinc-50 opacity-60'}`}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-zinc-100 rounded-lg text-green-600"><AndroidIcon /></div>
-                <div>
-                  <h3 className="text-sm font-semibold text-zinc-900">Android Build</h3>
-                  <p className="text-xs text-zinc-500">Push to App Tester</p>
-                </div>
-              </div>
-              {state.androidDeployEnabled ? (
-                <>
-                  <BuildStatusPanel
-                    platform="android"
-                    status={state.androidBuildStatus}
-                    logs={state.buildLogs}
-                  />
-                  {androidWarning && !state.androidBuildStatus && (
-                    <div className="mt-3 px-3 py-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
-                      <div className="flex items-start gap-2">
-                        <AlertIcon />
-                        <p className="text-xs text-amber-800">
-                          Android initial setup may require manual configuration. Proceed with build?
-                        </p>
-                      </div>
-                      <div className="flex gap-2 ml-6">
-                        <button
-                          onClick={handleAndroidBuild}
-                          className="px-3 py-1.5 bg-[#522DA6] text-white rounded-lg text-xs font-medium hover:bg-[#422389]"
-                        >
-                          Continue
-                        </button>
-                        <button
-                          onClick={() => setAndroidWarning(false)}
-                          className="px-3 py-1.5 border border-zinc-300 rounded-lg text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {!state.androidBuildStatus && !androidWarning && (
-                    <button
-                      onClick={handleAndroidBuild}
-                      disabled={iosBuilding || androidBuilding}
-                      className="w-full mt-3 px-4 py-2.5 bg-[#522DA6] text-white rounded-lg text-sm font-medium hover:bg-[#422389] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Build Android v{state.androidVersion}
-                    </button>
-                  )}
-                </>
-              ) : (
-                <p className="text-xs text-zinc-400">Android deployment is disabled</p>
-              )}
-            </div>
+            {state.iosDeployEnabled ? (
+              <>
+                <BuildStatusPanel
+                  platform="ios"
+                  status={state.iosBuildStatus}
+                  logs={state.buildLogs}
+                  onClearCertificates={handleClearCertificates}
+                  duration={state.iosBuildDuration}
+                />
+                {!state.iosBuildStatus && (
+                  <button
+                    onClick={() => triggerBuild('ios')}
+                    disabled={iosBuilding || androidBuilding}
+                    className="w-full mt-3 px-4 py-2.5 bg-[#522DA6] text-white rounded-lg text-sm font-medium hover:bg-[#422389] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Build iOS v{state.iosVersion}
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-zinc-400">iOS deployment is disabled</p>
+            )}
           </div>
-        )}
+
+          {/* Android Build Card */}
+          <div className={`border rounded-xl p-5 ${state.androidDeployEnabled ? 'border-zinc-200' : 'border-zinc-100 bg-zinc-50 opacity-60'}`}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-zinc-100 rounded-lg text-green-600"><AndroidIcon /></div>
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-900">Android Build</h3>
+                <p className="text-xs text-zinc-500">Push to App Tester</p>
+              </div>
+            </div>
+            {state.androidDeployEnabled ? (
+              <>
+                <BuildStatusPanel
+                  platform="android"
+                  status={state.androidBuildStatus}
+                  logs={state.buildLogs}
+                  duration={state.androidBuildDuration}
+                />
+                {/* Download APK button when build succeeds */}
+                {state.androidBuildStatus === 'success' && (
+                  <button
+                    onClick={handleDownloadApk}
+                    className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 border border-zinc-300 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <DownloadIcon /> Download APK
+                  </button>
+                )}
+                {androidWarning && !state.androidBuildStatus && (
+                  <div className="mt-3 px-3 py-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
+                    <div className="flex items-start gap-2">
+                      <AlertIcon />
+                      <p className="text-xs text-amber-800">
+                        Android initial setup may require manual configuration. Proceed with build?
+                      </p>
+                    </div>
+                    <div className="flex gap-2 ml-6">
+                      <button
+                        onClick={handleAndroidBuild}
+                        className="px-3 py-1.5 bg-[#522DA6] text-white rounded-lg text-xs font-medium hover:bg-[#422389]"
+                      >
+                        Continue
+                      </button>
+                      <button
+                        onClick={() => setAndroidWarning(false)}
+                        className="px-3 py-1.5 border border-zinc-300 rounded-lg text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {!state.androidBuildStatus && !androidWarning && (
+                  <button
+                    onClick={handleAndroidBuild}
+                    disabled={iosBuilding || androidBuilding}
+                    className="w-full mt-3 px-4 py-2.5 bg-[#522DA6] text-white rounded-lg text-sm font-medium hover:bg-[#422389] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Build Android v{state.androidVersion}
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-zinc-400">Android deployment is disabled</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Fixed bottom bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-10 py-4 flex items-center justify-between z-30">
         <button
-          onClick={isView ? () => navigate?.('#/') : onBack}
-          disabled={!isView && (iosBuilding || androidBuilding)}
+          onClick={onBack}
+          disabled={iosBuilding || androidBuilding}
           className="px-4 py-2 border border-zinc-300 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
         >
-          {isView ? 'Back to Home' : 'Back'}
+          Back
         </button>
         <div className="text-xs text-zinc-400">
-          {isView && `Viewing version ${state.versionNumber} — read-only`}
-          {!isView && buildTriggered && !iosBuilding && !androidBuilding && (
+          {buildTriggered && !iosBuilding && !androidBuilding && (
             <button
               onClick={() => navigate?.('#/')}
               className="px-4 py-2 bg-[#522DA6] text-white rounded-lg text-sm font-medium hover:bg-[#422389]"

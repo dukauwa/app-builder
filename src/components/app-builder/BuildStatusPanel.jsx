@@ -12,11 +12,21 @@ const XCircle = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
 );
 
-export default function BuildStatusPanel({ platform, status, logs, onClearCertificates }) {
+function formatDuration(ms) {
+  if (!ms) return null;
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
+}
+
+export default function BuildStatusPanel({ platform, status, logs, onClearCertificates, duration }) {
   if (!status) return null;
 
   const isIos = platform === 'ios';
   const label = isIos ? 'iOS' : 'Android';
+  const durationStr = formatDuration(duration);
 
   return (
     <div className={`border rounded-xl p-4 ${
@@ -43,6 +53,9 @@ export default function BuildStatusPanel({ platform, status, logs, onClearCertif
             {status === 'success' && (isIos ? 'Pushed to TestFlight' : 'Pushed to App Tester')}
             {status === 'failed' && (logs ? 'See error details below' : 'Build failed. Please check your configuration and retry.')}
           </p>
+          {durationStr && (status === 'success' || status === 'failed') && (
+            <p className="text-xs text-zinc-400 mt-0.5">Duration: {durationStr}</p>
+          )}
         </div>
       </div>
 

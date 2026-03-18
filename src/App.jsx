@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useHashRouter } from './router';
-import { DEFAULT_CONFIG, GENERATION_HISTORY, MOCK_APP, MOCK_VERSION_HISTORY } from './mockData';
+import { DEFAULT_CONFIG, GENERATION_HISTORY, MOCK_APP } from './mockData';
 import DashboardShell from './components/DashboardShell';
 import ScoringSchedulesHub from './pages/ScoringSchedulesHub';
 import GenerateFlow from './pages/GenerateFlow';
@@ -22,13 +22,15 @@ export default function App() {
   const [generationConfig, setGenerationConfig] = useState(DEFAULT_CONFIG);
   const [generations, setGenerations] = useState(GENERATION_HISTORY);
   const [lastGeneration, setLastGeneration] = useState(null);
-  const [generationStatus, setGenerationStatus] = useState(null); // null | 'running' | 'complete' | 'failed'
+  const [generationStatus, setGenerationStatus] = useState(null);
   const [currentGeneration, setCurrentGeneration] = useState(null);
-  const [versions, setVersions] = useState([]);
+
+  // Single build object (null = no build yet)
+  const [build, setBuild] = useState(null);
   const appData = MOCK_APP;
 
-  const handleVersionCreated = useCallback((newVersion) => {
-    setVersions(prev => [newVersion, ...prev]);
+  const handleBuildUpdated = useCallback((updatedBuild) => {
+    setBuild(updatedBuild);
   }, []);
 
   const startGeneration = useCallback(() => {
@@ -45,7 +47,6 @@ export default function App() {
     setCurrentGeneration(entry);
     setGenerationStatus('running');
 
-    // Simulate completion after ~10s
     setTimeout(() => {
       const completedEntry = { ...entry, status: 'complete', timeTaken: '~10s' };
       setGenerations(prev => [completedEntry, ...prev]);
@@ -74,10 +75,10 @@ export default function App() {
 
   // App Builder flow (full-page, no shell)
   if (path.startsWith('/app-builder')) {
-    return <AppBuilderFlow navigate={navigate} currentPath={path} versions={versions} appData={appData} onVersionCreated={handleVersionCreated} />;
+    return <AppBuilderFlow navigate={navigate} currentPath={path} build={build} appData={appData} onBuildUpdated={handleBuildUpdated} />;
   }
 
-  // Schedule view page (full grip-scheduling-prototype with MustMeet pre-ticked)
+  // Schedule view page
   if (path === '/schedules/view') {
     return <ScheduleViewPage navigate={navigate} />;
   }
@@ -111,7 +112,7 @@ export default function App() {
       );
     }
     // Default: App Settings home
-    return <AppBuilderHome navigate={navigate} versions={versions} appData={appData} />;
+    return <AppBuilderHome navigate={navigate} build={build} appData={appData} />;
   };
 
   return (

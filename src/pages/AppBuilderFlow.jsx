@@ -41,10 +41,10 @@ function incrementPatch(version) {
 }
 
 // ── Inner Flow (needs context) ──
-function AppBuilderInner({ navigate, onVersionCreated }) {
+function AppBuilderInner({ navigate, onBuildUpdated }) {
   const { state, setStep } = useAppBuilder();
   const goBack = () => navigate('#/');
-  const isView = state.mode === 'view';
+  const isEdit = state.mode === 'edit';
 
   return (
     <div className="min-h-screen bg-white">
@@ -57,25 +57,22 @@ function AppBuilderInner({ navigate, onVersionCreated }) {
           <img src="/Image (Grip).png" alt="Grip" className="h-7" />
           <div>
             <h1 className="text-lg font-semibold text-zinc-900">App Builder</h1>
-            {!isView && <StepIndicator steps={STEPS} current={state.currentStep} />}
-            {isView && (
-              <p className="text-sm text-zinc-500">Viewing Version {state.versionNumber}</p>
-            )}
+            <StepIndicator steps={STEPS} current={state.currentStep} />
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {isView && (
-            <span className="px-2.5 py-1 bg-zinc-100 text-zinc-600 rounded-full text-xs font-medium">
-              Read-only
+          {isEdit && (
+            <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+              Editing Build
             </span>
           )}
-          {!isView && state.versionNumber && (
+          {!isEdit && state.versionNumber && (
             <span className="px-2.5 py-1 bg-[#522DA6]/10 text-[#522DA6] rounded-full text-xs font-medium">
-              {state.revertedFrom ? `Reverting from v${state.revertedFrom}` : `New Version: v${state.versionNumber}`}
+              New Version: v{state.versionNumber}
             </span>
           )}
           <button onClick={goBack} className="flex items-center gap-2 px-4 py-2 border border-zinc-300 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50">
-            <ArrowLeft /> {isView ? 'Back to Home' : 'Go back'}
+            <ArrowLeft /> Go back
           </button>
         </div>
       </div>
@@ -98,7 +95,7 @@ function AppBuilderInner({ navigate, onVersionCreated }) {
           <StepReview
             onBack={() => setStep('uploads')}
             onGoToStep={(step) => setStep(step)}
-            onVersionCreated={onVersionCreated}
+            onBuildUpdated={onBuildUpdated}
             navigate={navigate}
           />
         )}
@@ -108,77 +105,51 @@ function AppBuilderInner({ navigate, onVersionCreated }) {
 }
 
 // ── Flow Container (provides context) ──
-export default function AppBuilderFlow({ navigate, currentPath, versions = [], appData = {}, onVersionCreated }) {
+export default function AppBuilderFlow({ navigate, currentPath, build = null, appData = {}, onBuildUpdated }) {
   const pathParts = currentPath.replace('/app-builder', '').split('/').filter(Boolean);
-  const action = pathParts[0] || 'new'; // 'new', 'version', 'revert'
-  const param = pathParts[1] || null;
-
-  const latestVersion = versions[0] || null;
-  const nextVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
+  const action = pathParts[0] || 'new'; // 'new' or 'edit'
 
   let initialData;
 
-  if (action === 'version' && param) {
-    // View mode — load specific version's config, all read-only
-    const version = versions.find(v => v.versionNumber === Number(param));
-    if (version) {
-      initialData = {
-        ...version.config,
-        mode: 'view',
-        versionNumber: version.versionNumber,
-        iosVersion: version.iosVersion,
-        androidVersion: version.androidVersion,
-        revertedFrom: version.revertedFrom,
-        appleStoreConnectId: appData.appleStoreConnectId,
-        lockedFields: ['bundleId', 'packageId', 'appleTeamId', 'appName'],
-        step1Saved: true,
-      };
-    }
-  } else if (action === 'revert' && param) {
-    // Revert mode — prefill from old version, but create new version
-    const version = versions.find(v => v.versionNumber === Number(param));
-    if (version) {
-      initialData = {
-        ...version.config,
-        mode: 'new-version',
-        versionNumber: nextVersionNumber,
-        iosVersion: latestVersion ? incrementPatch(latestVersion.iosVersion) : '1.0.0',
-        androidVersion: latestVersion ? incrementPatch(latestVersion.androidVersion) : '1.0.0',
-        revertedFrom: version.versionNumber,
-        appleStoreConnectId: appData.appleStoreConnectId,
-        lockedFields: ['bundleId', 'packageId', 'appleTeamId'],
-        step1Saved: true,
-      };
-    }
+  if (action === 'edit' && build) {
+    // Edit mode — load existing build config, identity fields locked
+    initialData = {
+      ...build.config,
+      mode: 'edit',
+      versionNumber: build.versionNumber,
+      iosVersion: build.iosVersion,
+      androidVersion: build.androidVersion,
+      appleStoreConnectId: build.appleStoreConnectId || appData.appleStoreConnectId,
+      lockedFields: ['bundleId', 'packageId', 'appleTeamId'],
+      step1Saved: true,
+    };
   } else {
-    // New version — prefill from latest version config
-    if (latestVersion) {
+    // New version — prefill from existing build config if available
+    if (build) {
       initialData = {
-        ...latestVersion.config,
+        ...build.config,
         mode: 'new-version',
-        versionNumber: nextVersionNumber,
-        iosVersion: incrementPatch(latestVersion.iosVersion),
-        androidVersion: incrementPatch(latestVersion.androidVersion),
-        revertedFrom: null,
-        appleStoreConnectId: appData.appleStoreConnectId,
+        versionNumber: build.versionNumber + 1,
+        iosVersion: incrementPatch(build.iosVersion),
+        androidVersion: incrementPatch(build.androidVersion),
+        appleStoreConnectId: build.appleStoreConnectId || appData.appleStoreConnectId,
         lockedFields: ['bundleId', 'packageId', 'appleTeamId'],
         step1Saved: true,
       };
     } else {
-      // First ever version
+      // First ever build
       initialData = {
         mode: 'new-version',
         versionNumber: 1,
         iosVersion: '1.0.0',
         androidVersion: '1.0.0',
-        revertedFrom: null,
       };
     }
   }
 
   return (
     <AppBuilderProvider initialData={initialData}>
-      <AppBuilderInner navigate={navigate} onVersionCreated={onVersionCreated} />
+      <AppBuilderInner navigate={navigate} onBuildUpdated={onBuildUpdated} />
     </AppBuilderProvider>
   );
 }
